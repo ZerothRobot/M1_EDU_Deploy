@@ -588,7 +588,7 @@ joint_velocitys_pub.publish(msg)
 这设置了运动命令的速度上限。较低的值产生较慢、更受控的运动；较高的值允许更快的过渡。该值以舵机编码器 ticks/s 为单位，其中 4090 表示接近最大速度能力（默认）。
 
 参见 [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/JOYIN_MINI_DEPLOY/control_system.py) `publish_joint_velocity_value_command()` 了解实现。
- 
+
 
 
 **`/ControlEnableMotor_topic` 载荷：**
@@ -699,11 +699,12 @@ for i in range(20):
 ## 10. 电池
 
 
-| 话题                 | 类型           | QoS |
-| -------------------- | -------------- | --- |
-| `/HardwareBat_topic` | `hardware/Bat` | 1   |
+| 话题                          | 类型           | QoS  |
+| ----------------------------- | -------------- | ---- |
+| `/HardwareBat_topic`          | `hardware/Bat` | 1    |
+| `/BusinessEnableCharge_topic` | std_msgs/UInt8 | 1    |
 
-
+电池信息`/HardwareBat_topic`：
 
 | 字段                                                       | 单位      |
 | ---------------------------------------------------------- | --------- |
@@ -714,8 +715,12 @@ for i in range(20):
 | `plate_vol`                                                | mV        |
 | `on_charger`, `is_charging`, `charge_full`, `charge_error` | 0/1 标志位 |
 
-
 充电控制：`/BusinessEnableCharge_topic`（`std_msgs/UInt8`）
+
+| 字段                              | 单位               |
+| --------------------------------- | ------------------ |
+| `data`                            | bool，0关闭，1打开 |
+
 
 ---
 

@@ -21,7 +21,27 @@ sync
 reboot
 ```
 
-This method is to reset the system partition and APP partition to factory state without deleting program running data (/userdata). To clean up program data, please use the reset button above the backpack.
+### Differences Between the Reset Methods
+
+1. A shell reset primarily clears the overlay layers of the system and app partitions, restoring them to their factory state. It preserves application runtime data in `/userdata`, including the network configuration.
+2. A physical-button reset also triggers the shell reset.
+3. In addition, a physical-button reset removes the following files and directories:
+
+   ```text
+   /userdata/wpa_supplicant.conf
+   /userdata/wpa_supplicant.conf.bak
+   /userdata/joyin/.device_factory_reset_safe
+   /userdata/joyin/.device_bind_success
+   /userdata/joyin/config/slam/
+   /userdata/joyin/config/voice_package
+   /userdata/joyin/config/business
+   /userdata/joyin/config/timezone
+   /userdata/.postCache
+   /userdata/log/*.log*
+   /userdata/lifetime
+   ```
+
+To clear the application data listed above, use the reset button on top of the robot's backpack.
 
 ## App Upgrade
 

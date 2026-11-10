@@ -702,11 +702,12 @@ caution: exceed these ranges can cause servo failures or damages. The zero point
 ## 10. Battery
 
 
-| Topic                | Type           | QoS |
-| -------------------- | -------------- | --- |
-| `/HardwareBat_topic` | `hardware/Bat` | 1   |
+| Topic                         | Type             | QoS |
+| ----------------------------- | ---------------- | --- |
+| `/HardwareBat_topic`          | `hardware/Bat`   | 1   |
+| `/BusinessEnableCharge_topic` | `std_msgs/UInt8` | 1   |
 
-
+Battery information: `/HardwareBat_topic`
 
 | Field                                                      | Unit      |
 | ---------------------------------------------------------- | --------- |
@@ -719,6 +720,10 @@ caution: exceed these ranges can cause servo failures or damages. The zero point
 
 
 Charge control: `/BusinessEnableCharge_topic` (`std_msgs/UInt8`)
+
+| Field  | Unit                           |
+| ------ | ------------------------------ |
+| `data` | bool, 0 = disabled, 1 = enabled |
 
 ---
 
@@ -1009,4 +1014,3 @@ ros2 param get /hardware hardware.MCU.status
 
 
 ---
-

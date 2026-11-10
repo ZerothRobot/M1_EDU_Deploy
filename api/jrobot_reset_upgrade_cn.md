@@ -15,13 +15,37 @@
 进入机器人的 Shell，执行以下命令触发重置：
 
 ```bash
-mkdir -p /userdata/factory
+1、恢复出厂设置后，设备数据有残留，设备网络配置保留
+
+2、恢复出厂设置后，设备数据清理完成mkdir -p /userdata/factory
 touch /userdata/factory/.reset_overlay
 sync
 reboot
 ```
 
 这种方式是重置系统分区和APP分区为出厂状态，不删除程序运行数据（/userdata）。若要清理程序数据，请使用背包上方的重置按键。
+
+### 两种方式的区别
+
+1. Shell重置主要是清理system和app分区的overlay层。
+2. 通过物理按键重置会触发通过Shell重置。
+3. 通过物理按键重置会清理以下内容：
+
+   ```txt
+   /userdata/wpa_supplicant.conf
+   /userdata/wpa_supplicant.conf.bak
+   /userdata/joyin/.device_factory_reset_safe
+   /userdata/joyin/.device_bind_success
+   /userdata/joyin/config/slam/
+   /userdata/joyin/config/voice_package
+   /userdata/joyin/config/business
+   /userdata/joyin/config/timezone
+   /userdata/.postCache
+   /userdata/log/*.log*
+   /userdata/lifetime
+   ```
+
+   
 
 ## App 升级
 
