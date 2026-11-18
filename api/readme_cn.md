@@ -683,7 +683,7 @@ for i in range(20):
 
 **关节旋转正向：**
 
-![M1 关节旋转正向示意图](res/joint_directions.png)
+<img src="res/joint_directions.png" alt="M1 关节旋转正向示意图" width="600">
 
 注意：超出这些范围可能导致舵机故障或损坏。M1 的关节原始角度的零点对应于蹲姿（用于校准）。在 RL 部署中，使用标准形式的关节角度，参见 [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/JOYIN_MINI_DEPLOY/control_system.py) 中的 `kinematic_state_feedback_msg_callback`。   
 

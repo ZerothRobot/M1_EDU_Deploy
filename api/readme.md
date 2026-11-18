@@ -686,7 +686,7 @@ See [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy
 
 **Positive joint rotation directions:**
 
-![M1 positive joint rotation directions](res/joint_directions.png)
+<img src="res/joint_directions.png" alt="M1 positive joint rotation directions" width="600">
 
 caution: exceed these ranges can cause servo failures or damages. The zero point for the joint angles of M1 correspond to a crouch pose (for calibration usage). In RL deployment, use the standard-form joint angle, see `kinematic_state_feedback_msg_callback` in [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/JOYIN_MINI_DEPLOY/control_system.py).   
 
