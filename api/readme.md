@@ -684,6 +684,9 @@ See [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy
 | Head yaw                 | -50 ~ 85        |
 | Head pitch               | -30 ~ 30        |
 
+**Positive joint rotation directions:**
+
+![M1 positive joint rotation directions](res/joint_directions.png)
 
 caution: exceed these ranges can cause servo failures or damages. The zero point for the joint angles of M1 correspond to a crouch pose (for calibration usage). In RL deployment, use the standard-form joint angle, see `kinematic_state_feedback_msg_callback` in [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/JOYIN_MINI_DEPLOY/control_system.py).   
 
@@ -744,7 +747,7 @@ Charge control: `/BusinessEnableCharge_topic` (`std_msgs/UInt8`)
 
 | Topic                        | Dir | Type                                                       |
 | ---------------------------- | --- | ---------------------------------------------------------- |
-| `/ControlVehicleSpeed_topic` | Sub | `std_msgs/Int16MultiArray` `[left, right]` (MCU wheel cmd) |
+| `/ControlVehicleSpeed_topic` | Sub | `std_msgs/Int16MultiArray` `[left, right](ranged from -1100 - 1100 mm/s)` (MCU wheel cmd) |
 
 
 ---

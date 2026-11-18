@@ -681,6 +681,9 @@ for i in range(20):
 | 头偏航            | -50 ~ 85       |
 | 头俯仰            | -30 ~ 30       |
 
+**关节旋转正向：**
+
+![M1 关节旋转正向示意图](res/joint_directions.png)
 
 注意：超出这些范围可能导致舵机故障或损坏。M1 的关节原始角度的零点对应于蹲姿（用于校准）。在 RL 部署中，使用标准形式的关节角度，参见 [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/JOYIN_MINI_DEPLOY/control_system.py) 中的 `kinematic_state_feedback_msg_callback`。   
 
@@ -741,7 +744,7 @@ for i in range(20):
 
 | 话题                         | 方向 | 类型                                                         |
 | ---------------------------- | ---- | ------------------------------------------------------------ |
-| `/ControlVehicleSpeed_topic` | 订阅 | `std_msgs/Int16MultiArray` `[left, right]`（MCU 车轮命令） |
+| `/ControlVehicleSpeed_topic` | 订阅 | `std_msgs/Int16MultiArray` `[left, right](范围-1100 mm/s - 1100 mm/s)`（MCU 车轮命令） |
 
 
 ---
