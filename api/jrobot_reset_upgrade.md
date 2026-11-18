@@ -1,6 +1,7 @@
 # JRobot Reset and Upgrade Guide
 
 > **Version requirement:** The following operations are available only after upgrading to `v1.7.13.1_rl_202611061340` or later.
+Use this to check version: cat /tmp/hardware_status.json
 
 ## Full System Reset
 
