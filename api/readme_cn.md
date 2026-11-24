@@ -12,6 +12,7 @@
 
 | 版本       | 日期       | 更新内容                                                                                                                                                             |
 | ---------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v0.0.4** | 2026-11-23 | 新增运控调试指令话题 `/ControlMotion_topic`（`std_msgs/Int32`，`data` = gait_type）：支持重力标定、跌倒爬起、恢复站立、锁腿/解锁；补充 BaseLine 运控接管握手话题 `/ControlBaselineMotionEnable_topic` 与 `/ControlBaselineMotionActive_topic`。 |
 | **v0.0.3** | 2026-10-12 | 移除无效章节，更新控制相关 API，并将文档重命名为 ros2_api.md。                                                                                                       |
 | **v0.0.2** | 2026-09-30 | 新增媒体 ROS 2 API：iTOF、RGB 相机（`/camera/image_jpeg`、`/camera/image_h264`、`/camera/jpeg_high_resolution`）、麦克风/扬声器（`/audio/capture_pcm`、`/audio/speaker_pcm`）、LCD（`/emoji/index`、`/lcd/video/nv12`）。 |
 | **v0.0.1** | 2026-07-17 | 初始传感器为中心的 ROS 2 接口参考文档，用于海外二次开发。涵盖 IMU、LiDAR、iTOF、关节、电池、车轮、头部姿态、下视和按键。记录生命周期参数、QoS 注意事项、TF 警告和集成示例。 |
@@ -68,7 +69,7 @@ ifconfig wlan0
 
 在此设置 M1 edu 的训练环境：[JOYIN_MINI_GYM](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Train)
 
-在模拟环境中验证策略后，在此部署：[JOYIN_MINI_DEPLOY](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy)
+在模拟环境中验证策略后，在此部署：[ZEROTH_MINI_DEPLOY](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy)
 
 **重要提示：** 当建立自定义代码（即发送关节角度命令或车轮速度命令）时，请确保关闭默认嵌入的 `control_pm` 节点（在 `run.sh` 中）：
 
@@ -567,7 +568,7 @@ for i in range(12):
 joint_angles_pub.publish(msg)
 ```
 
-参见 [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/JOYIN_MINI_DEPLOY/control_system.py)，获取包含偏移/方向转换的完整 RL 部署示例。
+参见 [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/ZEROTH_MINI_DEPLOY/control_system.py)，获取包含偏移/方向转换的完整 RL 部署示例。
 
 **`/ControlMotorSpeed_topic`** — 设置所有 20 个关节的最大速度限制：
 
@@ -587,7 +588,7 @@ joint_velocitys_pub.publish(msg)
 
 这设置了运动命令的速度上限。较低的值产生较慢、更受控的运动；较高的值允许更快的过渡。该值以舵机编码器 ticks/s 为单位，其中 4090 表示接近最大速度能力（默认）。
 
-参见 [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/JOYIN_MINI_DEPLOY/control_system.py) `publish_joint_velocity_value_command()` 了解实现。
+参见 [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/ZEROTH_MINI_DEPLOY/control_system.py) `publish_joint_velocity_value_command()` 了解实现。
 
 
 
@@ -650,7 +651,7 @@ for i in range(20):
 
 **重要：** PID 调整影响舵机响应特性。最初使用保守值，逐步调整。每个关节按顺序接收自己的 PID 消息，有小延迟以避免压垮 MCU 消息队列。
 
-参见 [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/JOYIN_MINI_DEPLOY/control_system.py) `publish_joint_pid_ctrl_command()` 了解实现。
+参见 [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/ZEROTH_MINI_DEPLOY/control_system.py) `publish_joint_pid_ctrl_command()` 了解实现。
 
 
 **机械限位（原始角度）：**
@@ -685,7 +686,7 @@ for i in range(20):
 
 <img src="res/joint_directions.png" alt="M1 关节旋转正向示意图" width="600">
 
-注意：超出这些范围可能导致舵机故障或损坏。M1 的关节原始角度的零点对应于蹲姿（用于校准）。在 RL 部署中，使用标准形式的关节角度，参见 [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/JOYIN_MINI_DEPLOY/control_system.py) 中的 `kinematic_state_feedback_msg_callback`。   
+注意：超出这些范围可能导致舵机故障或损坏。M1 的关节原始角度的零点对应于蹲姿（用于校准）。在 RL 部署中，使用标准形式的关节角度，参见 [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/ZEROTH_MINI_DEPLOY/control_system.py) 中的 `kinematic_state_feedback_msg_callback`。
 
 ### 工厂动作
 
@@ -975,6 +976,9 @@ ros2 param get /hardware hardware.MCU.status
 | `/HardwareVehicleFeedback_topic`   | best_effort，深度 1    |
 | `/HardwareHeadPosition_topic`      | best_effort，深度 1    |
 | `/ControlHeadControl_topic`        | best_effort，深度 1    |
+| `/ControlMotion_topic`             | reliable，KeepLast(1)  |
+| `/ControlBaselineMotionEnable_topic` | reliable，transient_local，KeepLast(1) |
+| `/ControlBaselineMotionActive_topic` | reliable，transient_local，KeepLast(1) |
 | `/HardwareDownviewFeedback_topic`  | KeepLast(1)            |
 | `/HardwareLidar_topic`             | reliable，深度 1       |
 | `/HardwareImuBipedMotion_topic`    | best_effort，深度 1    |
@@ -992,13 +996,82 @@ ros2 param get /hardware hardware.MCU.status
 
 
 
-## 17. 完整话题索引
+## 17. 运控调试指令（`/ControlMotion_topic`）
+
+用于手动触发运控插件内部的调试/辅助动作。`data` 直接作为 `gait_type` 转发给现有的 motion cmd 处理函数。
+
+| 话题                   | 类型             | 方向 | QoS                   | 描述                   |
+| ---------------------- | ---------------- | ---- | --------------------- | ---------------------- |
+| `/ControlMotion_topic` | `std_msgs/Int32` | 订阅 | reliable，KeepLast(1) | `data` = gait_type，命令码见下表 |
+
+**命令码：**
+
+| `data` | 动作         | 说明                                                    |
+| ------ | ------------ | ------------------------------------------------------- |
+| `10`   | 前向跌倒爬起 | 置 `Get_Up_Forward_Event`，并设置低头头部指令。       |
+| `11`   | 后向跌倒爬起 | 置 `Get_Up_Backward_Event`，并设置低头头部指令。      |
+| `52`   | 跌倒爬起     | 置 `Get_Up_Forward_Event`（仅事件）。                       |
+| `56`   | 恢复站立     | 置 `Recover_Stand_Event`。                                |
+| `62`   | 锁腿         | 置 `Lock_Leg_Event`。                                     |
+| `63`   | 解锁         | 置 `UnLock_Leg_Event`。                                   |
+| `67`   | 重力标定     | 触发重力标定。                                            |
+| 其他   | 忽略         | 打印 `unsupported gait_type` 日志。                         |
+
+> **状态要求：** `10/11/52` 等跌倒爬起事件在 `MOTOR_DISABLE` 模式下被消费；`62/63` 由锁腿/解锁流程处理。
+
+**示例：**
+
+```bash
+# 重力标定
+ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 67}"
+
+# 后向跌倒爬起
+ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 11}"
+
+# 锁腿 / 解锁
+ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 62}"
+ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 63}"
+```
+
+> 该话题新增时名为 `/ControlCalibration_topic`（2026-11-18），后曾用名 `/ControlDebugMotion_topic`，当前统一为 `/ControlMotion_topic`。
+
+### 运控接管握手（BaseLine）
+
+外部部署工程接管电机指令时使用。插件默认 `baseline_motion_enabled_ = true`，即由插件自己驱动电机；外部发 `false` 释放，发 `true` 恢复。
+
+| 话题                                | 类型            | 方向 | QoS                                    | 描述                                                                     |
+| ----------------------------------- | --------------- | ---- | -------------------------------------- | ------------------------------------------------------------------------ |
+| `/ControlBaselineMotionEnable_topic` | `std_msgs/Bool` | 订阅 | reliable，transient_local，KeepLast(1) | `false`：释放运控、停止驱动电机/忽略行走命令；`true`：恢复。缺省 `true`。 |
+| `/ControlBaselineMotionActive_topic` | `std_msgs/Bool` | 发布 | reliable，transient_local，KeepLast(1) | 插件当前是否在驱动电机；latched，供外部部署握手/确认。               |
+
+> 行走中（`RL_WALK` / `WALKING_STATE`）发送 `false` 会被拒绝，需先停止行走；释放/恢复时插件会用当前反馈重同步目标，避免姿态跳变。
+
+**示例：**
+
+```bash
+# 释放运控（外部部署接管）
+ros2 topic pub --once /ControlBaselineMotionEnable_topic std_msgs/msg/Bool "{data: false}"
+
+# 恢复运控
+ros2 topic pub --once /ControlBaselineMotionEnable_topic std_msgs/msg/Bool "{data: true}"
+
+# 查看当前状态
+ros2 topic echo /ControlBaselineMotionActive_topic --once
+```
+
+---
+
+
+
+## 18. 完整话题索引
 
 
 | 传感器   | 发布                                                                                                                                       | 订阅 / 服务                                                                                                                                                     |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | IMU      | `/HardwareImuBipedMotion_topic`（~200 Hz，**推荐**），`/HardwareImuStd_topic`（~100 Hz，相同载荷/旧版），`/HardwareImuCal_topic` | `/ControlImuCal_topic`                                                                                                                                          |
-| 关节     | `/ControlMotorAngles_topic`，`/ControlMotorSpeed_topic`，`/ControlMotorRangeSet_topic`，`/ControlEnableMotor_topic`，`/ControlPidControl_topic`，`/ControlGetPid_topic` | `/HardwareKinematic_topic`，`/HardwareMotorLoad_topic`，`/HardwareMotorCurrent_topic`，`/HardwareMotorTemp_topic`，`/HardwareMotorErr_topic` |
+| 关节     | `/HardwareKinematic_topic`，`/HardwareMotorLoad_topic`，`/HardwareMotorCurrent_topic`，`/HardwareMotorTemp_topic`，`/HardwareMotorErr_topic` | `/ControlMotorAngles_topic`，`/ControlMotorSpeed_topic`，`/ControlMotorRangeSet_topic`，`/ControlEnableMotor_topic`，`/ControlPidControl_topic`，`/ControlGetPid_topic` |
+| 运控调试 | — | `/ControlMotion_topic`（`std_msgs/Int32`，`data` = gait_type：67=重力标定，10/11/52=跌倒爬起，56=恢复站立，62/63=锁腿/解锁） |
+| 运控接管 | `/ControlBaselineMotionActive_topic`（`std_msgs/Bool`，latched） | `/ControlBaselineMotionEnable_topic`（`std_msgs/Bool`，latched） |
 | LiDAR    | `/HardwareLidar_topic`                                                                                                                     | `/lidar_enable`，`/lidar_disable`                                                                                                                               |
 | iTOF     | `/HardwareItof/point_cloud`，`/HardwareItof/depth_image`，`/HardwareItof/gray_image`，`/HardwareItof/camera_info`                         | `/itof_enable`，`/itof_disable`（占位符）                                                                                                                       |
 | 相机     | `/camera/image_jpeg`，`/camera/image_h264`，`/camera/jpeg_high_resolution`                                                                 | —                                                                                                                                                               |

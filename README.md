@@ -1,6 +1,6 @@
 # Zeroth M1 Humanoid Robot - RL Deployment
 
-🌎 English | [🇨🇳 中文](README_zh.md)
+🌎 English | [🇨🇳 中文](README_cn.md)
 
 ---
 
@@ -12,7 +12,7 @@ This repository contains the **reinforcement learning policy deployment framewor
 
 | Isaac Gym Simulation | Real Robot Deployment |
 |:---:|:---:|
-| ![Simulation](JOYIN_MINI_DEPLOY/demos/M1_walking_in_simulation.gif) | ![Real Robot](JOYIN_MINI_DEPLOY/demos/M1_deploy.gif) |
+| ![Simulation](ZEROTH_MINI_DEPLOY/demos/M1_walking_in_simulation.gif) | ![Real Robot](ZEROTH_MINI_DEPLOY/demos/M1_deploy.gif) |
 | *Policy training in Isaac Gym* | *Deployed on Zeroth M1 hardware* |
 
 </div>
@@ -30,6 +30,7 @@ This repository contains the **reinforcement learning policy deployment framewor
 | **config_mini.yaml** | Robot configuration file containing default joint angles, zero-position offsets, observation dimensions, and scaling factors |
 | **udp_sender.py** | Real-time data streaming class for sending telemetry to PlotJuggler via UDP |
 | **model/** | Directory for storing trained RL policies in ONNX format |
+| **lib/** | WBC control plugins, including the default and custom-policy adaptation variants |
 | **pylibs/** | Python dependencies and libraries required for deployment |
 
 
@@ -41,7 +42,7 @@ This repository contains the **reinforcement learning policy deployment framewor
 
 ```bash
 git clone <repository-url>
-cd JOYIN_MINI_DEPLOY
+cd ZEROTH_MINI_DEPLOY
 ```
 
 ### 2. Connect to Robot
@@ -52,7 +53,26 @@ Connect your development machine to the **same local network** as the robot's Wi
 ssh <robot-username>@<robot-ip>
 ```
 
-### 3. Run Deployment
+### 3. Use a Custom-Trained Model
+
+Ensure that the robot is in a safe posture and that the relevant control processes have stopped, then run the following commands locally on the robot.
+
+1. Rename the onboard default plugin to `.default` and enable the custom plugin:
+
+```bash
+cd /app/joyin/lib && mv libwbc_ctrl_plugin.so libwbc_ctrl_plugin.so.default && mv libwbc_ctrl_plugin.so.custom_adaption libwbc_ctrl_plugin.so
+```
+
+2. Uncomment the `start_joy_launcher()` function in `/app/joyin/run.sh`:
+
+```bash
+sed -i '/^# start_joy_launcher() {/,/^# }/s/^# //' /app/joyin/run.sh
+```
+3. Reboot robot
+```bash
+reboot
+```
+### 4. Run Deployment
 
 Place your trained ONNX model in the `model/` directory, then run:
 

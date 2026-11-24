@@ -12,6 +12,7 @@ Sensor-centric ROS 2 API for secondary development on the Joyin robot platform.
 
 | Version    | Date       | Changes                                                                                                                                                                                                                                                       |
 | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v0.0.4** | 2026-11-23 | Added the `/ControlMotion_topic` motion-control debug command topic (`std_msgs/Int32`, `data` = gait_type) for gravity calibration, fall recovery, standing recovery, and leg lock/unlock; added the BaseLine takeover handshake topics `/ControlBaselineMotionEnable_topic` and `/ControlBaselineMotionActive_topic`. |
 | **v0.0.3** | 2026-10-12 | Removed invalid section, update control related apis and rename doc name as ros2_api.md.                                                                                                                                                                        |
 | **v0.0.2** | 2026-09-30 | Add media ROS 2 APIs: iTOF, RGB camera (`/camera/image_jpeg`, `/camera/image_h264`, `/camera/jpeg_high_resolution`), mic/speaker (`/audio/capture_pcm`, `/audio/speaker_pcm`), LCD (`/emoji/index`, `/lcd/video/nv12`).                                       |
 | **v0.0.1** | 2026-07-17 | Initial sensor-centric ROS 2 interface reference for overseas secondary development. Covers IMU, LiDAR, iTOF, joints, battery, vehicle wheels, head pose, downview, and keys. Documents lifecycle parameters, QoS notes, TF caveats, and integration recipes. |
@@ -68,7 +69,7 @@ See: [https://github.com/Zeroth-OpenBridge](https://github.com/Zeroth-OpenBridge
 
 Setup your own training environment for M1 edu here: [JOYIN_MINI_GYM](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Train)
 
-Once your policy verified in the simulation environment, deploy here: [JOYIN_MINI_DEPLOY](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy)
+Once your policy verified in the simulation environment, deploy here: [ZEROTH_MINI_DEPLOY](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy)
 
 **Important:** When establishing your custom codes (i.e., giving joint angle commands or vehicle speed commands), please ensure that the default embedded `control_pm` node (in `run.sh`) is shut down:
 
@@ -565,7 +566,7 @@ for i in range(12):
 joint_angles_pub.publish(msg)
 ```
 
-See [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/JOYIN_MINI_DEPLOY/control_system.py) for a complete RL deployment example with offset/direction transformations.
+See [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/ZEROTH_MINI_DEPLOY/control_system.py) for a complete RL deployment example with offset/direction transformations.
 
 **`/ControlMotorSpeed_topic`** — Set maximum speed limit for all 20 joints:
 
@@ -585,7 +586,7 @@ joint_velocitys_pub.publish(msg)
 
 This sets the speed ceiling for motion commands. Lower values produce slower, more controlled movements; higher values allow faster transitions. The value is in servo encoder ticks per second, where 4090 represents near-maximum speed capability(default).
 
-See [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/JOYIN_MINI_DEPLOY/control_system.py) `publish_joint_velocity_value_command()` for the implementation.
+See [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/ZEROTH_MINI_DEPLOY/control_system.py) `publish_joint_velocity_value_command()` for the implementation.
  
 
 
@@ -651,7 +652,7 @@ for i in range(20):
 
 **Important:** default value kp(20), kd(2) are used for motor system identification, changes of PID gains would lead to issues in RL model sim2real transfer.
 
-See [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/JOYIN_MINI_DEPLOY/control_system.py) `publish_joint_pid_ctrl_command()` for the implementation.
+See [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/ZEROTH_MINI_DEPLOY/control_system.py) `publish_joint_pid_ctrl_command()` for the implementation.
 
 
 
@@ -688,7 +689,7 @@ See [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy
 
 <img src="res/joint_directions.png" alt="M1 positive joint rotation directions" width="600">
 
-caution: exceed these ranges can cause servo failures or damages. The zero point for the joint angles of M1 correspond to a crouch pose (for calibration usage). In RL deployment, use the standard-form joint angle, see `kinematic_state_feedback_msg_callback` in [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/JOYIN_MINI_DEPLOY/control_system.py).   
+caution: exceed these ranges can cause servo failures or damages. The zero point for the joint angles of M1 correspond to a crouch pose (for calibration usage). In RL deployment, use the standard-form joint angle, see `kinematic_state_feedback_msg_callback` in [control_system.py](https://github.com/ZerothOpenBridge/Zeroth-M1_EDU_Deploy/blob/main/ZEROTH_MINI_DEPLOY/control_system.py).
 
 ### Factory Action
 
@@ -978,6 +979,9 @@ ros2 param get /hardware hardware.MCU.status
 | `/HardwareVehicleFeedback_topic` | best_effort, depth 1   |
 | `/HardwareHeadPosition_topic`    | best_effort, depth 1   |
 | `/ControlHeadControl_topic`      | best_effort, depth 1   |
+| `/ControlMotion_topic`           | reliable, KeepLast(1)  |
+| `/ControlBaselineMotionEnable_topic` | reliable, transient_local, KeepLast(1) |
+| `/ControlBaselineMotionActive_topic` | reliable, transient_local, KeepLast(1) |
 | `/HardwareDownviewFeedback_topic`| KeepLast(1)            |
 | `/HardwareLidar_topic`           | reliable, depth 1      |
 | `/HardwareImuBipedMotion_topic`  | best_effort, depth 1   |
@@ -995,13 +999,82 @@ ros2 param get /hardware hardware.MCU.status
 
 
 
-## 17. Full Topic Index
+## 17. Motion Control Debug Commands (`/ControlMotion_topic`)
+
+Use this topic to manually trigger debug and helper motions in the motion-control plugin. The `data` value is forwarded directly to the existing motion-command handler as `gait_type`.
+
+| Topic | Type | Direction | QoS | Description |
+| ----- | ---- | --------- | --- | ----------- |
+| `/ControlMotion_topic` | `std_msgs/Int32` | Subscribe | reliable, KeepLast(1) | `data` = gait_type; see the command codes below |
+
+**Command codes:**
+
+| `data` | Motion | Description |
+| ------ | ------ | ----------- |
+| `10` | Forward fall recovery | Sets `Get_Up_Forward_Event` and sends a head-down command. |
+| `11` | Backward fall recovery | Sets `Get_Up_Backward_Event` and sends a head-down command. |
+| `52` | Fall recovery | Sets `Get_Up_Forward_Event` (event only). |
+| `56` | Recover standing | Sets `Recover_Stand_Event`. |
+| `62` | Lock legs | Sets `Lock_Leg_Event`. |
+| `63` | Unlock legs | Sets `UnLock_Leg_Event`. |
+| `67` | Gravity calibration | Triggers gravity calibration. |
+| Other | Ignored | Logs `unsupported gait_type`. |
+
+> **State requirements:** Fall-recovery events such as `10/11/52` are consumed in `MOTOR_DISABLE` mode; `62/63` are handled by the leg lock/unlock flow.
+
+**Examples:**
+
+```bash
+# Gravity calibration
+ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 67}"
+
+# Backward fall recovery
+ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 11}"
+
+# Lock / unlock legs
+ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 62}"
+ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 63}"
+```
+
+> This topic was introduced as `/ControlCalibration_topic` on 2026-11-18, was later named `/ControlDebugMotion_topic`, and is now standardized as `/ControlMotion_topic`.
+
+### Motion Control Takeover Handshake (BaseLine)
+
+Use this handshake when an external deployment project takes over motor commands. The plugin defaults to `baseline_motion_enabled_ = true`, meaning that the plugin drives the motors. Send `false` to release control or `true` to restore it.
+
+| Topic | Type | Direction | QoS | Description |
+| ----- | ---- | --------- | --- | ----------- |
+| `/ControlBaselineMotionEnable_topic` | `std_msgs/Bool` | Subscribe | reliable, transient_local, KeepLast(1) | `false`: release motion control, stop driving motors, and ignore walking commands; `true`: restore control. Default: `true`. |
+| `/ControlBaselineMotionActive_topic` | `std_msgs/Bool` | Publish | reliable, transient_local, KeepLast(1) | Whether the plugin is currently driving the motors; latched for external handshake and confirmation. |
+
+> Sending `false` while walking (`RL_WALK` / `WALKING_STATE`) is rejected. Stop walking first. When control is released or restored, the plugin resynchronizes its targets from the current feedback to avoid posture jumps.
+
+**Examples:**
+
+```bash
+# Release motion control for external deployment
+ros2 topic pub --once /ControlBaselineMotionEnable_topic std_msgs/msg/Bool "{data: false}"
+
+# Restore motion control
+ros2 topic pub --once /ControlBaselineMotionEnable_topic std_msgs/msg/Bool "{data: true}"
+
+# Check the current state
+ros2 topic echo /ControlBaselineMotionActive_topic --once
+```
+
+---
+
+
+
+## 18. Full Topic Index
 
 
 | Sensor   | Publish                                                                                                                                       | Subscribe / Service                                                                                                                                                     |
 | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | IMU      | `/HardwareImuBipedMotion_topic` (~200 Hz, **recommended**), `/HardwareImuStd_topic` (~100 Hz, same payload / legacy), `/HardwareImuCal_topic` | `/ControlImuCal_topic`                                                                                                                                                  |
-| Joints   | `/ControlMotorAngles_topic`, `/ControlMotorSpeed_topic`, `/ControlMotorRangeSet_topic`, `/ControlEnableMotor_topic`, `/ControlPidControl_topic`, `/ControlGetPid_topic` | `/HardwareKinematic_topic`, `/HardwareMotorLoad_topic`, `/HardwareMotorCurrent_topic`, `/HardwareMotorTemp_topic`, `/HardwareMotorErr_topic` |
+| Joints   | `/HardwareKinematic_topic`, `/HardwareMotorLoad_topic`, `/HardwareMotorCurrent_topic`, `/HardwareMotorTemp_topic`, `/HardwareMotorErr_topic` | `/ControlMotorAngles_topic`, `/ControlMotorSpeed_topic`, `/ControlMotorRangeSet_topic`, `/ControlEnableMotor_topic`, `/ControlPidControl_topic`, `/ControlGetPid_topic` |
+| Motion debug | — | `/ControlMotion_topic` (`std_msgs/Int32`, `data` = gait_type: 67=gravity calibration, 10/11/52=fall recovery, 56=recover standing, 62/63=lock/unlock legs) |
+| Motion takeover | `/ControlBaselineMotionActive_topic` (`std_msgs/Bool`, latched) | `/ControlBaselineMotionEnable_topic` (`std_msgs/Bool`, latched) |
 | LiDAR    | `/HardwareLidar_topic`                                                                                                                        | `/lidar_enable`, `/lidar_disable`                                                                                                                                       |
 | iTOF     | `/HardwareItof/point_cloud`, `/HardwareItof/depth_image`, `/HardwareItof/gray_image`, `/HardwareItof/camera_info`                             | `/itof_enable`, `/itof_disable` (placeholders)                                                                                                                          |
 | Camera   | `/camera/image_jpeg`, `/camera/image_h264`, `/camera/jpeg_high_resolution`                                                                    | —                                                                                                                                                                       |

@@ -12,7 +12,7 @@
 
 | Isaac Gym 仿真 | 真机部署 |
 |:---:|:---:|
-| ![仿真](JOYIN_MINI_DEPLOY/demos/M1_walking_in_simulation.gif) | ![真机部署](JOYIN_MINI_DEPLOY/demos/M1_deploy.gif) |
+| ![仿真](ZEROTH_MINI_DEPLOY/demos/M1_walking_in_simulation.gif) | ![真机部署](ZEROTH_MINI_DEPLOY/demos/M1_deploy.gif) |
 | *Isaac Gym 中的策略训练* | *在 M1 硬件上部署* |
 
 </div>
@@ -30,6 +30,7 @@
 | **config_mini.yaml** | 机器人配置文件 - 包含默认关节角度、零位偏置、观测维度、缩放因子等参数 |
 | **udp_sender.py** | 实时数据流类 - 通过 UDP 协议向 PlotJuggler 发送遥测数据 |
 | **model/** | 存放训练好的 RL 策略模型（ONNX 格式） |
+| **lib/** | WBC 控制插件，包括默认版本和自定义策略适配版本 |
 | **pylibs/** | 部署所需的 Python 依赖库 |
 
 ---
@@ -40,7 +41,7 @@
 
 ```bash
 git clone <仓库地址>
-cd JOYIN_MINI_DEPLOY
+cd ZEROTH_MINI_DEPLOY
 ```
 
 ### 2. 连接机器人
@@ -52,8 +53,29 @@ ssh <机器人用户名>@<机器人IP地址>
 ```
 
 
-### 3. 启动部署
-将训练好的 ONNX 模型放入 `model/` 目录，然后终端输入：
+### 3. 使用用户自训练模型
+
+先确保机器人处于安全姿态，且相关控制进程已停止，然后在机器人本地执行以下操作。
+
+1. 将机载默认插件重命名为 `.default`，同时启用 custom 插件：
+
+```bash
+cd /app/joyin/lib && mv libwbc_ctrl_plugin.so libwbc_ctrl_plugin.so.default && mv libwbc_ctrl_plugin.so.custom_adaption libwbc_ctrl_plugin.so
+```
+
+2. 取消 `/app/joyin/run.sh` 中 `start_joy_launcher()` 函数的注释：
+
+```bash
+sed -i '/^# start_joy_launcher() {/,/^# }/s/^# //' /app/joyin/run.sh
+```
+3. 重启机器
+```bash
+reboot
+```
+### 4. 启动部署
+
+将训练好的 ONNX 模型放入 `model/` 目录，然后在终端中输入：
+
 ```bash
 python demo_walk.py --model=model/your_model_name.onnx
 ```
