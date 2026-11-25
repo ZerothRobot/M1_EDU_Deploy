@@ -51,6 +51,8 @@ reboot
 
 ## App 升级
 
+> **升级范围：** 升级仅覆盖 App 分区，不更新 System 分区，因此升级后两个分区的版本信息会不一致。
+
 ### 1. 下载升级包
 
 从 [GitHub Releases 页面](https://github.com/ZerothRobot/Zeroth-M1_EDU_Deploy/releases)下载升级包。
@@ -73,6 +75,12 @@ cd /userdata && tar -xf app_package.tar.gz
 
 ```bash
 cat /userdata/update/app/result
+```
+
+升级后的 App 版本记录在 `/app/joyin/version` 文件中，可通过以下命令查看：
+
+```bash
+cat /app/joyin/version
 ```
 
 ### 使用错误升级文件后的恢复

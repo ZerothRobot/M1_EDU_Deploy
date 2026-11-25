@@ -46,6 +46,8 @@ To clear the application data listed above, use the reset button on top of the r
 
 ## App Upgrade
 
+> **Upgrade scope:** The upgrade only overwrites the app partition and does not update the system partition. As a result, their version information will differ after the upgrade.
+
 ### 1. Download the Upgrade Package
 
 Download the upgrade package from the [GitHub Releases page](https://github.com/ZerothRobot/Zeroth-M1_EDU_Deploy/releases).
@@ -68,6 +70,12 @@ View the saved upgrade result:
 
 ```bash
 cat /userdata/update/app/result
+```
+
+The upgraded app version is recorded in `/app/joyin/version`. Run the following command to view it:
+
+```bash
+cat /app/joyin/version
 ```
 
 ### Recover from an Incorrect Upgrade File
