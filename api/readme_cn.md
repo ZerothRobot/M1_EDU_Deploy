@@ -12,7 +12,8 @@
 
 | 版本       | 日期       | 更新内容                                                                                                                                                             |
 | ---------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **v0.0.4** | 2026-11-23 | 新增运控调试指令话题 `/ControlMotion_topic`（`std_msgs/Int32`，`data` = gait_type）：支持重力标定、跌倒爬起、恢复站立、锁腿/解锁；补充 BaseLine 运控接管握手话题 `/ControlBaselineMotionEnable_topic` 与 `/ControlBaselineMotionActive_topic`。 |
+| **v0.0.5** | 2026-11-26 | 新增运控调试指令话题 `/ControlMotion_topic`（`std_msgs/Int32`），支持跌倒爬起（11）、恢复站立（56）、锁腿（62）和解锁（63）。 |
+| **v0.0.4** | 2026-11-23 | 补充 BaseLine 运控接管握手话题 `/ControlBaselineMotionEnable_topic` 与 `/ControlBaselineMotionActive_topic`。 |
 | **v0.0.3** | 2026-10-12 | 移除无效章节，更新控制相关 API，并将文档重命名为 ros2_api.md。                                                                                                       |
 | **v0.0.2** | 2026-09-30 | 新增媒体 ROS 2 API：iTOF、RGB 相机（`/camera/image_jpeg`、`/camera/image_h264`、`/camera/jpeg_high_resolution`）、麦克风/扬声器（`/audio/capture_pcm`、`/audio/speaker_pcm`）、LCD（`/emoji/index`、`/lcd/video/nv12`）。 |
 | **v0.0.1** | 2026-07-17 | 初始传感器为中心的 ROS 2 接口参考文档，用于海外二次开发。涵盖 IMU、LiDAR、iTOF、关节、电池、车轮、头部姿态、下视和按键。记录生命周期参数、QoS 注意事项、TF 警告和集成示例。 |
@@ -976,9 +977,9 @@ ros2 param get /hardware hardware.MCU.status
 | `/HardwareVehicleFeedback_topic`   | best_effort，深度 1    |
 | `/HardwareHeadPosition_topic`      | best_effort，深度 1    |
 | `/ControlHeadControl_topic`        | best_effort，深度 1    |
-| `/ControlMotion_topic`             | reliable，KeepLast(1)  |
 | `/ControlBaselineMotionEnable_topic` | reliable，transient_local，KeepLast(1) |
 | `/ControlBaselineMotionActive_topic` | reliable，transient_local，KeepLast(1) |
+| `/ControlMotion_topic`             | reliable，KeepLast(1)  |
 | `/HardwareDownviewFeedback_topic`  | KeepLast(1)            |
 | `/HardwareLidar_topic`             | reliable，深度 1       |
 | `/HardwareImuBipedMotion_topic`    | best_effort，深度 1    |
@@ -996,46 +997,7 @@ ros2 param get /hardware hardware.MCU.status
 
 
 
-## 17. 运控调试指令（`/ControlMotion_topic`）
-
-用于手动触发运控插件内部的调试/辅助动作。`data` 直接作为 `gait_type` 转发给现有的 motion cmd 处理函数。
-
-| 话题                   | 类型             | 方向 | QoS                   | 描述                   |
-| ---------------------- | ---------------- | ---- | --------------------- | ---------------------- |
-| `/ControlMotion_topic` | `std_msgs/Int32` | 订阅 | reliable，KeepLast(1) | `data` = gait_type，命令码见下表 |
-
-**命令码：**
-
-| `data` | 动作         | 说明                                                    |
-| ------ | ------------ | ------------------------------------------------------- |
-| `10`   | 前向跌倒爬起 | 置 `Get_Up_Forward_Event`，并设置低头头部指令。       |
-| `11`   | 后向跌倒爬起 | 置 `Get_Up_Backward_Event`，并设置低头头部指令。      |
-| `52`   | 跌倒爬起     | 置 `Get_Up_Forward_Event`（仅事件）。                       |
-| `56`   | 恢复站立     | 置 `Recover_Stand_Event`。                                |
-| `62`   | 锁腿         | 置 `Lock_Leg_Event`。                                     |
-| `63`   | 解锁         | 置 `UnLock_Leg_Event`。                                   |
-| `67`   | 重力标定     | 触发重力标定。                                            |
-| 其他   | 忽略         | 打印 `unsupported gait_type` 日志。                         |
-
-> **状态要求：** `10/11/52` 等跌倒爬起事件在 `MOTOR_DISABLE` 模式下被消费；`62/63` 由锁腿/解锁流程处理。
-
-**示例：**
-
-```bash
-# 重力标定
-ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 67}"
-
-# 后向跌倒爬起
-ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 11}"
-
-# 锁腿 / 解锁
-ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 62}"
-ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 63}"
-```
-
-> 该话题新增时名为 `/ControlCalibration_topic`（2026-11-18），后曾用名 `/ControlDebugMotion_topic`，当前统一为 `/ControlMotion_topic`。
-
-### 运控接管握手（BaseLine）
+## 17. 运控接管握手（BaseLine）
 
 外部部署工程接管电机指令时使用。插件默认 `baseline_motion_enabled_ = true`，即由插件自己驱动电机；外部发 `false` 释放，发 `true` 恢复。
 
@@ -1063,15 +1025,47 @@ ros2 topic echo /ControlBaselineMotionActive_topic --once
 
 
 
-## 18. 完整话题索引
+## 18. 运控调试指令（`/ControlMotion_topic`）
+
+向该话题发送一条 `Int32` 消息即可触发运控调试动作。插件将 `data` 作为 `gait_type` 传给 `ControlBipedMotion_topic` 共用的处理函数，效果等同于发送 `plan/msg/BipedMotionCmd` 并设置 `control_mode: 1` 和 `gait_type: <data>`。
+
+| 话题 | 类型 | 方向 | QoS | 描述 |
+| ---- | ---- | ---- | --- | ---- |
+| `/ControlMotion_topic` | `std_msgs/Int32` | 订阅 | reliable，KeepLast(1) | `data` 为下表命令码，未列出的值会被忽略。 |
+
+| 命令码 | 功能 | 说明 |
+| ------ | ---- | ---- |
+| `11` | 跌倒爬起 | 进入四肢复位和爬起流程。平放或跌倒后使用。 |
+| `56` | 恢复站立 | 使能电机并回到初始站立姿态。 |
+| `62` | 锁腿（卡脚） | 先切到站立位的下蹲高度，再执行卡脚动作，然后等待小车信号。 |
+| `63` | 解锁 | 在小车上收腿解锁。 |
+
+**示例**
+
+```bash
+# 跌倒爬起
+ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 11}"
+
+# 恢复站立
+ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 56}"
+
+# 锁腿 / 解锁
+ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 62}"
+ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 63}"
+```
+
+---
+
+
+
+## 19. 完整话题索引
 
 
 | 传感器   | 发布                                                                                                                                       | 订阅 / 服务                                                                                                                                                     |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | IMU      | `/HardwareImuBipedMotion_topic`（~200 Hz，**推荐**），`/HardwareImuStd_topic`（~100 Hz，相同载荷/旧版），`/HardwareImuCal_topic` | `/ControlImuCal_topic`                                                                                                                                          |
 | 关节     | `/HardwareKinematic_topic`，`/HardwareMotorLoad_topic`，`/HardwareMotorCurrent_topic`，`/HardwareMotorTemp_topic`，`/HardwareMotorErr_topic` | `/ControlMotorAngles_topic`，`/ControlMotorSpeed_topic`，`/ControlMotorRangeSet_topic`，`/ControlEnableMotor_topic`，`/ControlPidControl_topic`，`/ControlGetPid_topic` |
-| 运控调试 | — | `/ControlMotion_topic`（`std_msgs/Int32`，`data` = gait_type：67=重力标定，10/11/52=跌倒爬起，56=恢复站立，62/63=锁腿/解锁） |
-| 运控接管 | `/ControlBaselineMotionActive_topic`（`std_msgs/Bool`，latched） | `/ControlBaselineMotionEnable_topic`（`std_msgs/Bool`，latched） |
+| 运控接管 | `/ControlBaselineMotionActive_topic`（`std_msgs/Bool`，latched） | `/ControlBaselineMotionEnable_topic`（`std_msgs/Bool`，latched），`/ControlMotion_topic`（`std_msgs/Int32`） |
 | LiDAR    | `/HardwareLidar_topic`                                                                                                                     | `/lidar_enable`，`/lidar_disable`                                                                                                                               |
 | iTOF     | `/HardwareItof/point_cloud`，`/HardwareItof/depth_image`，`/HardwareItof/gray_image`，`/HardwareItof/camera_info`                         | `/itof_enable`，`/itof_disable`（占位符）                                                                                                                       |
 | 相机     | `/camera/image_jpeg`，`/camera/image_h264`，`/camera/jpeg_high_resolution`                                                                 | —                                                                                                                                                               |

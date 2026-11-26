@@ -12,7 +12,8 @@ Sensor-centric ROS 2 API for secondary development on the Joyin robot platform.
 
 | Version    | Date       | Changes                                                                                                                                                                                                                                                       |
 | ---------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **v0.0.4** | 2026-11-23 | Added the `/ControlMotion_topic` motion-control debug command topic (`std_msgs/Int32`, `data` = gait_type) for gravity calibration, fall recovery, standing recovery, and leg lock/unlock; added the BaseLine takeover handshake topics `/ControlBaselineMotionEnable_topic` and `/ControlBaselineMotionActive_topic`. |
+| **v0.0.5** | 2026-11-26 | Added the `/ControlMotion_topic` motion control debug topic (`std_msgs/Int32`) for fall recovery (11), restoring the standing pose (56), locking the legs (62), and unlocking the legs (63). |
+| **v0.0.4** | 2026-11-23 | Added the BaseLine takeover handshake topics `/ControlBaselineMotionEnable_topic` and `/ControlBaselineMotionActive_topic`. |
 | **v0.0.3** | 2026-10-12 | Removed invalid section, update control related apis and rename doc name as ros2_api.md.                                                                                                                                                                        |
 | **v0.0.2** | 2026-09-30 | Add media ROS 2 APIs: iTOF, RGB camera (`/camera/image_jpeg`, `/camera/image_h264`, `/camera/jpeg_high_resolution`), mic/speaker (`/audio/capture_pcm`, `/audio/speaker_pcm`), LCD (`/emoji/index`, `/lcd/video/nv12`).                                       |
 | **v0.0.1** | 2026-07-17 | Initial sensor-centric ROS 2 interface reference for overseas secondary development. Covers IMU, LiDAR, iTOF, joints, battery, vehicle wheels, head pose, downview, and keys. Documents lifecycle parameters, QoS notes, TF caveats, and integration recipes. |
@@ -979,9 +980,9 @@ ros2 param get /hardware hardware.MCU.status
 | `/HardwareVehicleFeedback_topic` | best_effort, depth 1   |
 | `/HardwareHeadPosition_topic`    | best_effort, depth 1   |
 | `/ControlHeadControl_topic`      | best_effort, depth 1   |
-| `/ControlMotion_topic`           | reliable, KeepLast(1)  |
 | `/ControlBaselineMotionEnable_topic` | reliable, transient_local, KeepLast(1) |
 | `/ControlBaselineMotionActive_topic` | reliable, transient_local, KeepLast(1) |
+| `/ControlMotion_topic`           | reliable, KeepLast(1)  |
 | `/HardwareDownviewFeedback_topic`| KeepLast(1)            |
 | `/HardwareLidar_topic`           | reliable, depth 1      |
 | `/HardwareImuBipedMotion_topic`  | best_effort, depth 1   |
@@ -999,46 +1000,7 @@ ros2 param get /hardware hardware.MCU.status
 
 
 
-## 17. Motion Control Debug Commands (`/ControlMotion_topic`)
-
-Use this topic to manually trigger debug and helper motions in the motion-control plugin. The `data` value is forwarded directly to the existing motion-command handler as `gait_type`.
-
-| Topic | Type | Direction | QoS | Description |
-| ----- | ---- | --------- | --- | ----------- |
-| `/ControlMotion_topic` | `std_msgs/Int32` | Subscribe | reliable, KeepLast(1) | `data` = gait_type; see the command codes below |
-
-**Command codes:**
-
-| `data` | Motion | Description |
-| ------ | ------ | ----------- |
-| `10` | Forward fall recovery | Sets `Get_Up_Forward_Event` and sends a head-down command. |
-| `11` | Backward fall recovery | Sets `Get_Up_Backward_Event` and sends a head-down command. |
-| `52` | Fall recovery | Sets `Get_Up_Forward_Event` (event only). |
-| `56` | Recover standing | Sets `Recover_Stand_Event`. |
-| `62` | Lock legs | Sets `Lock_Leg_Event`. |
-| `63` | Unlock legs | Sets `UnLock_Leg_Event`. |
-| `67` | Gravity calibration | Triggers gravity calibration. |
-| Other | Ignored | Logs `unsupported gait_type`. |
-
-> **State requirements:** Fall-recovery events such as `10/11/52` are consumed in `MOTOR_DISABLE` mode; `62/63` are handled by the leg lock/unlock flow.
-
-**Examples:**
-
-```bash
-# Gravity calibration
-ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 67}"
-
-# Backward fall recovery
-ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 11}"
-
-# Lock / unlock legs
-ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 62}"
-ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 63}"
-```
-
-> This topic was introduced as `/ControlCalibration_topic` on 2026-11-18, was later named `/ControlDebugMotion_topic`, and is now standardized as `/ControlMotion_topic`.
-
-### Motion Control Takeover Handshake (BaseLine)
+## 17. Motion Control Takeover Handshake (BaseLine)
 
 Use this handshake when an external deployment project takes over motor commands. The plugin defaults to `baseline_motion_enabled_ = true`, meaning that the plugin drives the motors. Send `false` to release control or `true` to restore it.
 
@@ -1066,15 +1028,47 @@ ros2 topic echo /ControlBaselineMotionActive_topic --once
 
 
 
-## 18. Full Topic Index
+## 18. Motion Control Debug Commands (`/ControlMotion_topic`)
+
+Send an `Int32` message to this topic to trigger a motion control debug action. The plugin passes `data` as `gait_type` to the same handler used by `ControlBipedMotion_topic`. This is equivalent to sending a `plan/msg/BipedMotionCmd` with `control_mode: 1` and `gait_type: <data>`.
+
+| Topic | Type | Direction | QoS | Description |
+| ----- | ---- | --------- | --- | ----------- |
+| `/ControlMotion_topic` | `std_msgs/Int32` | Subscribe | reliable, KeepLast(1) | `data` is a command code from the table below. Unlisted values are ignored. |
+
+| Command code | Action | Description |
+| ------------ | ------ | ----------- |
+| `11` | Fall recovery | Starts the limb reset and get-up sequence. Use when the robot is lying flat or has fallen. |
+| `56` | Restore standing pose | Enables the motors and returns the robot to its initial standing pose. |
+| `62` | Lock legs (secure feet) | Moves to the crouch height for the standing pose, secures the feet, then waits for a signal from the vehicle. |
+| `63` | Unlock legs | Retracts and unlocks the legs while the robot is on the vehicle. |
+
+**Examples**
+
+```bash
+# Fall recovery
+ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 11}"
+
+# Restore standing pose
+ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 56}"
+
+# Lock / unlock legs
+ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 62}"
+ros2 topic pub --once /ControlMotion_topic std_msgs/msg/Int32 "{data: 63}"
+```
+
+---
+
+
+
+## 19. Full Topic Index
 
 
 | Sensor   | Publish                                                                                                                                       | Subscribe / Service                                                                                                                                                     |
 | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | IMU      | `/HardwareImuBipedMotion_topic` (~200 Hz, **recommended**), `/HardwareImuStd_topic` (~100 Hz, same payload / legacy), `/HardwareImuCal_topic` | `/ControlImuCal_topic`                                                                                                                                                  |
 | Joints   | `/HardwareKinematic_topic`, `/HardwareMotorLoad_topic`, `/HardwareMotorCurrent_topic`, `/HardwareMotorTemp_topic`, `/HardwareMotorErr_topic` | `/ControlMotorAngles_topic`, `/ControlMotorSpeed_topic`, `/ControlMotorRangeSet_topic`, `/ControlEnableMotor_topic`, `/ControlPidControl_topic`, `/ControlGetPid_topic` |
-| Motion debug | — | `/ControlMotion_topic` (`std_msgs/Int32`, `data` = gait_type: 67=gravity calibration, 10/11/52=fall recovery, 56=recover standing, 62/63=lock/unlock legs) |
-| Motion takeover | `/ControlBaselineMotionActive_topic` (`std_msgs/Bool`, latched) | `/ControlBaselineMotionEnable_topic` (`std_msgs/Bool`, latched) |
+| Motion takeover | `/ControlBaselineMotionActive_topic` (`std_msgs/Bool`, latched) | `/ControlBaselineMotionEnable_topic` (`std_msgs/Bool`, latched), `/ControlMotion_topic` (`std_msgs/Int32`) |
 | LiDAR    | `/HardwareLidar_topic`                                                                                                                        | `/lidar_enable`, `/lidar_disable`                                                                                                                                       |
 | iTOF     | `/HardwareItof/point_cloud`, `/HardwareItof/depth_image`, `/HardwareItof/gray_image`, `/HardwareItof/camera_info`                             | `/itof_enable`, `/itof_disable` (placeholders)                                                                                                                          |
 | Camera   | `/camera/image_jpeg`, `/camera/image_h264`, `/camera/jpeg_high_resolution`                                                                    | —                                                                                                                                                                       |
